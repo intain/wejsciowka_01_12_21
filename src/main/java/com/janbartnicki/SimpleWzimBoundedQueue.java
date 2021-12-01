@@ -11,7 +11,7 @@ public class SimpleWzimBoundedQueue<E> implements WzimBoundedQueue<E> {
     public SimpleWzimBoundedQueue(final int maxCapacity) {
         array = new Object[maxCapacity];
         start = 0;
-        end = 0;
+        end = 1;
         capacity = maxCapacity;
     }
 
