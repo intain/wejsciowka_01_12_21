@@ -1,29 +1,35 @@
 package com.janbartnicki;
 
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.ReentrantLock;
 
 @SuppressWarnings("unchecked")
 public class SimpleWzimBoundedQueue<E> implements WzimBoundedQueue<E> {
     private final Object[] array;
-    private int start, end;
+    private int start, count;
     private final int capacity;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public SimpleWzimBoundedQueue(final int maxCapacity) {
         array = new Object[maxCapacity];
         start = 0;
-        end = 1;
+        count = 0;
         capacity = maxCapacity;
     }
 
     private void forceAdd(E e)
     {
-        array[end] = e;
-        end = (end + 1) % capacity;
+        lock.lock();
+        try {
+            array[start + count++] = e;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public boolean add(E e) throws  IllegalStateException {
-        if(((end + 1) % capacity) == start) {
+        if(count == capacity) {
             throw new IllegalStateException();
         }
 
@@ -33,7 +39,7 @@ public class SimpleWzimBoundedQueue<E> implements WzimBoundedQueue<E> {
 
     @Override
     public boolean offer(E e) {
-        if(((end + 1) % capacity) == start) {
+        if(count == capacity) {
             return false;
         }
 
@@ -43,29 +49,31 @@ public class SimpleWzimBoundedQueue<E> implements WzimBoundedQueue<E> {
 
     @Override
     public E remove() {
-        if(start == end) {
+        if(count == 0) {
             throw new NoSuchElementException();
         }
 
         E element = (E)array[start];
         start = (start + 1) % capacity;
+        count--;
         return element;
     }
 
     @Override
     public E poll() {
-        if(start == end) {
+        if(count == 0) {
             return null;
         }
 
         E element = (E)array[start];
         start = (start + 1) % capacity;
+        count--;
         return element;
     }
 
     @Override
     public E element() {
-        if(start == end) {
+        if(count == 0) {
             throw new NoSuchElementException();
         }
 
@@ -74,14 +82,13 @@ public class SimpleWzimBoundedQueue<E> implements WzimBoundedQueue<E> {
 
     @Override
     public E peek() {
-        if(start == end) return null;
+        if(count == 0) return null;
         return (E)array[start];
     }
 
     @Override
     public int size() {
-        if(end >= start) return end - start;
-        return (capacity - start) + end;
+        return count;
     }
 
     @Override
